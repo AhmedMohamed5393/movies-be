@@ -4,7 +4,6 @@ import { AuthService } from '../auth.service';
 import { RegisterDto, LoginDto } from '../dto/index.dto';
 import { SuccessClass } from '@shared/classes/success.class';
 import { UnauthorizedException, UnprocessableEntityException } from '@nestjs/common';
-import { AuthTypeEnum } from '@shared/enums/auth-type.enum';
 
 describe('AuthController', () => {
   let authController: AuthController;

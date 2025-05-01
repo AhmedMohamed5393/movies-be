@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import * as request from 'supertest';
 import { Reflector } from '@nestjs/core';
-import { AuthTypeEnum } from '@shared/enums/auth-type.enum';
 import { AuthGuard } from '@shared/guards/auth.guard';
 import { AuthController } from '../auth.controller';
 import { AuthService } from '../auth.service';
