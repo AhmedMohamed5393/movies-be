@@ -5,5 +5,6 @@ module.exports = {
   moduleNameMapper: {
     '^@shared/(.*)$': '<rootDir>/src/modules/shared/$1',
     '^@config/(.*)$': './src/config/$1',
+    '^src/(.*)$': '<rootDir>/src/$1',
   },
 };
