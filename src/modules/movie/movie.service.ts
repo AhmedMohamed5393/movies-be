@@ -12,6 +12,8 @@ import {
 } from './dtos/index.dto';
 import { RatingService } from '../rating/rating.service';
 import { CreateMovieInterface } from './interfaces/create-movie.interface';
+import { RedisService } from '@shared/redis/redis.service';
+import { GetMoviesResponseInterface } from './interfaces/get-movies-response.interface';
 
 @Injectable()
 export class MovieService {
@@ -19,6 +21,7 @@ export class MovieService {
     private readonly movieRepository: MovieRepository,
     private readonly watchListService: WatchListService,
     private readonly ratingService: RatingService,
+    private readonly redisService: RedisService,
   ) {}
 
   async addMovieItemToWatchList(
@@ -43,21 +46,30 @@ export class MovieService {
   }
 
   async getMovies(movieFilterOptionsDto: MovieFilterOptionsDto) {
-    const { page, take, search, genre } = movieFilterOptionsDto;
+    const { page, take, search, genre_name, genre_id } = movieFilterOptionsDto;
     const skip = (page - 1) * take || 0;
 
-    const filterBy = {};
-    if (genre?.length) {
-      filterBy['genres'] = { name: genre };
+    const filterBy = { genres: {} };
+    if (genre_name?.length) {
+      filterBy['genres']['name'] = genre_name;
+    }
+    if (genre_id?.length) {
+      filterBy['genres']['id'] = genre_id;
     }
 
-    const where = search
+    const where: any = search
       ? [
           { title: ILike(`%${movieFilterOptionsDto.search}%`), ...filterBy },
           { overview: ILike(`%${movieFilterOptionsDto.search}%`), ...filterBy },
         ]
       : { ...filterBy };
 
+    // Check cache
+    const key = `movies:page=${page}:take=${take}:search=${search || ''}:genre_name=${genre_name || ''}:genre_id=${genre_id || ''}`;
+    
+    const cached = await this.redisService.get<GetMoviesResponseInterface>(key);
+    if (cached) return cached;
+    
     const [movies, total] = await this.movieRepository.findAndCount({
       select: {
         id: true,
@@ -80,8 +92,13 @@ export class MovieService {
       total: total,
       pageOptionsDto: movieFilterOptionsDto,
     });
+    
+    const response = { meta, movies };
+    
+    // Cache result for 5 minutes
+    await this.redisService.set(key, response, 5 * 60);
 
-    return { meta, movies };
+    return response;
   }
 
   async getMovieById(id: string): Promise<Movie> {

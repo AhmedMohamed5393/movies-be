@@ -1,8 +1,12 @@
 import { PageOptionsDto } from "@shared/pagination/pageOption.dto";
-import { IsOptional, IsString } from "class-validator";
+import { IsOptional, IsString, IsUUID } from "class-validator";
 
 export class MovieFilterOptionsDto extends PageOptionsDto {
     @IsOptional()
     @IsString()
-    genre?: string;
+    genre_name?: string;
+
+    @IsOptional()
+    @IsUUID()
+    genre_id?: string;
 }

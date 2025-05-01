@@ -6,6 +6,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { dataSourceOptions } from '../../../db/database.config';
 import { JWTAuthService } from './services/jwt-auth.service';
 import { PasswordService } from './services/password.service';
+import { RedisModule } from './redis/redis.module';
 
 @Global()
 @Module({
@@ -24,6 +25,7 @@ import { PasswordService } from './services/password.service';
       },
     }),
     TypeOrmModule.forRoot(dataSourceOptions),
+    RedisModule,
   ],
   exports: [
     JWTAuthService,
