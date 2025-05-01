@@ -4,7 +4,6 @@ import { ILike } from 'typeorm';
 import { Movie } from './entities/movie.entity';
 import { MovieRepository } from './repositories/movie.repository';
 import { WatchListService } from '../watchlist/watchlist.service';
-import { WatchListItem } from '../watchlist/entities/wishlist.entity';
 import {
   AddRatingToMovieDto,
   AddToWatchListDto,
@@ -27,7 +26,7 @@ export class MovieService {
   async addMovieItemToWatchList(
     addToWatchListDto: AddToWatchListDto,
     user_id: string,
-  ): Promise<WatchListItem> {
+  ) {
     return await this.watchListService.saveNewWatchListItem({
       user_id: user_id,
       movie_id: addToWatchListDto.movie_id,
@@ -37,7 +36,7 @@ export class MovieService {
   async addRatingToMovie(
     addRatingToMovieDto: AddRatingToMovieDto,
     user_id: string,
-  ): Promise<WatchListItem> {
+  ) {
     return await this.ratingService.addRating({
       user_id: user_id,
       movie_id: addRatingToMovieDto.movie_id,
