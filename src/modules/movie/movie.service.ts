@@ -11,7 +11,7 @@ import {
 } from './dtos/index.dto';
 import { RatingService } from '../rating/rating.service';
 import { CreateMovieInterface } from './interfaces/create-movie.interface';
-import { RedisService } from '@shared/redis/redis.service';
+import { RedisService } from '@shared/services/redis.service';
 import { GetMoviesResponseInterface } from './interfaces/get-movies-response.interface';
 
 @Injectable()

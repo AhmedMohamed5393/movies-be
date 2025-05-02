@@ -7,7 +7,7 @@ import { MovieRepository } from './repositories/movie.repository';
 import { Movie } from './entities/movie.entity';
 import { WatchListModule } from '../watchlist/watchlist.module';
 import { RatingModule } from '../rating/rating.module';
-import { RedisModule } from '@shared/redis/redis.module';
+import { SharedModule } from '@shared/shared.module';
 
 @Module({
   imports: [
@@ -15,7 +15,7 @@ import { RedisModule } from '@shared/redis/redis.module';
     LoggingModule,
     WatchListModule,
     RatingModule,
-    RedisModule,
+    SharedModule,
   ],
   controllers: [MovieController],
   providers: [MovieService, MovieRepository],
