@@ -7,8 +7,8 @@ import { CreateMovieInterface } from '../movie/interfaces/create-movie.interface
 @Injectable()
 export class TmdbService {
   private readonly logger = new Logger(TmdbService.name);
-  private readonly TMDB_API_KEY = process.env.TMDB_API_KEY;
-  private readonly TMDB_BASE_URL = process.env.TMDB_BASE_URL;
+  private TMDB_API_KEY: string;
+  private TMDB_BASE_URL: string;
 
   constructor(
     private readonly genreService: GenreService,
@@ -16,6 +16,9 @@ export class TmdbService {
   ) {}
 
   async syncGenres(): Promise<void> {
+    this.TMDB_API_KEY = process.env.TMDB_API_KEY;
+    this.TMDB_BASE_URL = process.env.TMDB_BASE_URL;
+
     const url = `${this.TMDB_BASE_URL}/genre/movie/list?api_key=${this.TMDB_API_KEY}`;
     const { data } = await axios.get(url);
     for (const genre of data.genres) {
@@ -26,6 +29,9 @@ export class TmdbService {
   }
 
   async syncPopularMovies(): Promise<void> {
+    this.TMDB_API_KEY = process.env.TMDB_API_KEY;
+    this.TMDB_BASE_URL = process.env.TMDB_BASE_URL;
+
     const url = `${this.TMDB_BASE_URL}/movie/popular?api_key=${this.TMDB_API_KEY}`;
     const { data } = await axios.get(url);
     for (const movie of data.results) {
