@@ -12,10 +12,10 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: ['log','error'] });
 
   const config = new DocumentBuilder()
-    .setTitle('movie')
-    .setDescription('The movie management API description')
+    .setTitle('movies')
+    .setDescription('The movies management API description')
     .setVersion('1.0')
-    .addTag('movie')
+    .addTag('movies')
     .addBearerAuth(
       {
         description: `Please enter token in following format: JWT`,
