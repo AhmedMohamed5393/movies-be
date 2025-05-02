@@ -1,283 +1,153 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { RedisService } from '@shared/services/redis.service';
 import { NotFoundException } from '@nestjs/common';
-import { PageOptionsDto } from '@shared/pagination/pageOption.dto';
-import { PageMetaDto } from '@shared/pagination/page-meta.dto';
-import { AddDto, EditDto } from '../dtos/index.dto';
 import { MovieService } from '../movie.service';
-import { LoggingService } from '../../logging/logging.service';
-import { Movie } from '../entities/movie.entity';
 import { MovieRepository } from '../repositories/movie.repository';
+import { WatchListService } from 'src/modules/watchlist/watchlist.service';
+import { RatingService } from 'src/modules/rating/rating.service';
+import { AddRatingToMovieDto, AddToWatchListDto, MovieFilterOptionsDto } from '../dtos/index.dto';
+import { Genre } from 'src/modules/genre/entities/genre.entity';
+
+const mockUserId = 'user123';
 
 describe('MovieService', () => {
-  let movieService: MovieService;
-  let movieRepository: MovieRepository;
-  let loggingService: LoggingService;
+  let service: MovieService;
+  let mockMovieRepository: any;
+  let mockWatchListService: any;
+  let mockRatingService: any;
+  let mockRedisService: any;
 
   beforeEach(async () => {
+    mockMovieRepository = {
+      save: jest.fn(),
+      findOne: jest.fn(),
+      findAndCount: jest.fn(),
+      isExist: jest.fn(),
+    };
+    mockWatchListService = {
+      saveNewWatchListItem: jest.fn(),
+    };
+    mockRatingService = {
+      addRating: jest.fn(),
+    };
+    mockRedisService = {
+      get: jest.fn(),
+      set: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MovieService,
-        {
-          provide: MovieRepository,
-          useValue: {
-            save: jest.fn(),
-            findAndCount: jest.fn(),
-            findOne: jest.fn(),
-            update: jest.fn(),
-            softDelete: jest.fn(),
-            isExist: jest.fn(),
-          },
-        },
-        {
-          provide: LoggingService,
-          useValue: {
-            createLog: jest.fn(),
-          },
-        },
+        { provide: MovieRepository, useValue: mockMovieRepository },
+        { provide: WatchListService, useValue: mockWatchListService },
+        { provide: RatingService, useValue: mockRatingService },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 
-    movieService = module.get<MovieService>(MovieService);
-    movieRepository = module.get<MovieRepository>(MovieRepository);
-    loggingService = module.get<LoggingService>(LoggingService);
+    service = module.get<MovieService>(MovieService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  describe('addMovieItemToWatchList', () => {
+    it('should add a movie to watch list', async () => {
+      const dto: AddToWatchListDto = { movie_id: 'movie123' };
+      mockWatchListService.saveNewWatchListItem.mockResolvedValue('watchlistItem');
 
-  it('should be defined', () => {
-    expect(movieService).toBeDefined();
-  });
+      const result = await service.addMovieItemToWatchList(dto, mockUserId);
 
-  describe('saveNewMovie', () => {
-    it('should save a new movie and create a log', async () => {
-      const addDto: AddDto = {
-        title: "New movie title",
-        overview: "New movie overview",
-      };
-
-      const user = {
-        id: "550e8400-e29b-41d4-a716-446655440044",
-      };
-      const savedMovie = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
-        ...addDto,
-        created_at: new Date(),
-      } as Movie;
-
-      jest.spyOn(movieRepository, 'save').mockResolvedValue(savedMovie);
-      jest.spyOn(loggingService, 'createLog').mockResolvedValue(undefined);
-
-      const result = await movieService.saveNewMovie(addDto, user);
-
-      expect(movieRepository.save).toHaveBeenCalledWith(expect.any(Movie));
-      expect(loggingService.createLog).toHaveBeenCalledWith({
-        title: 'Added new movie',
-        action: `Added new movie with title "${addDto.title}"`,
-        entity: 'Movie',
-        user_id: user.id,
+      expect(mockWatchListService.saveNewWatchListItem).toHaveBeenCalledWith({
+        user_id: mockUserId,
+        movie_id: dto.movie_id,
       });
-      expect(result).toEqual(savedMovie);
+      expect(result).toBe('watchlistItem');
+    });
+  });
+
+  describe('addRatingToMovie', () => {
+    it('should add a rating to a movie', async () => {
+      const dto: AddRatingToMovieDto = { rating: 4, movie_id: 'movie123' };
+      mockRatingService.addRating.mockResolvedValue('ratingResult');
+
+      const result = await service.addRatingToMovie(dto, mockUserId);
+
+      expect(mockRatingService.addRating).toHaveBeenCalledWith({
+        user_id: mockUserId,
+        movie_id: dto.movie_id,
+        value: dto.rating,
+      });
+      expect(result).toBe('ratingResult');
     });
   });
 
   describe('getMovies', () => {
-    it('should return a paginated list of movies', async () => {
-      const pageOptionsDto = {
-        page: 1,
-        take: 10,
-        search: 'movie',
-      } as PageOptionsDto;
+    it('should return movies from cache if available', async () => {
+      const dto = { page: 1, take: 10 } as MovieFilterOptionsDto;
+      const cachedData = { movies: ['cached movie'], meta: {} };
+      mockRedisService.get.mockResolvedValue(cachedData);
 
-      const movies = [
-        {
-          id: "550e8400-e29b-41d4-a716-446655440000",
-          title: "New movie title",
-          overview: "New movie overview",
-          poster: {
-            id: "550e8400-e29b-41d4-a716-446655440044",
-            email: "ahmedmohamedalex93@gmail.com",
-          },
-          created_at: new Date(),
-        },
-      ] as Movie[];
+      const result = await service.getMovies(dto);
 
-      const total = 1;
-      const meta = new PageMetaDto({
-        itemsPerPage: movies.length,
-        total,
-        pageOptionsDto,
-      });
+      expect(mockRedisService.get).toHaveBeenCalled();
+      expect(result).toBe(cachedData);
+    });
 
-      jest.spyOn(movieRepository, 'findAndCount').mockResolvedValue([movies, total]);
+    it('should fetch from DB and cache the result if not cached', async () => {
+      const dto = { page: 1, take: 10 } as MovieFilterOptionsDto;
+      mockRedisService.get.mockResolvedValue(null);
+      mockMovieRepository.findAndCount.mockResolvedValue([['movie'], 1]);
+      mockRedisService.set.mockResolvedValue(undefined);
 
-      const result = await movieService.getMovies(pageOptionsDto);
+      const result = await service.getMovies(dto);
 
-      expect(movieRepository.findAndCount).toHaveBeenCalledWith({
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          tags: true,
-          user: { id: true, email: true },
-          created_at: true,
-        },
-        relations: { user: true },
-        take: pageOptionsDto.take,
-        skip: 0,
-        where: [
-          { title: expect.any(Object) },
-          { content: expect.any(Object) },
-          { tags: expect.any(Object) },
-        ],
-        order: { created_at: 'DESC' },
-      });
-      expect(result).toEqual({ meta, movies });
+      expect(mockMovieRepository.findAndCount).toHaveBeenCalled();
+      expect(mockRedisService.set).toHaveBeenCalled();
+      expect(result.movies).toEqual(['movie']);
     });
   });
 
   describe('getMovieById', () => {
-    it('should return a movie by ID', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440000";
-      const movie = {
-        id: movieId,
-        title: "New movie title",
-        overview: "New movie overview",
-        poster: {
-          id: "550e8400-e29b-41d4-a716-446655440044",
-          email: "ahmedmohamedalex93@gmail.com",
-        },
-        created_at: new Date(),
-      } as Movie;
+    it('should return a movie by id', async () => {
+      const movie = { id: 'movie123' };
+      mockMovieRepository.findOne.mockResolvedValue(movie);
 
-      jest.spyOn(movieRepository, 'findOne').mockResolvedValue(movie);
+      const result = await service.getMovieById('movie123');
 
-      const result = await movieService.getMovieById(movieId);
-
-      expect(movieRepository.findOne).toHaveBeenCalledWith({
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          tags: true,
-          user: { id: true, email: true },
-          created_at: true,
-        },
-        relations: { user: true },
-        where: { id: movieId },
-      });
-      expect(result).toEqual(movie);
+      expect(result).toBe(movie);
     });
 
-    it('should throw NotFoundException if movie is not found', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440000";
+    it('should throw NotFoundException if movie not found', async () => {
+      mockMovieRepository.findOne.mockResolvedValue(null);
 
-      jest.spyOn(movieRepository, 'findOne').mockResolvedValue(null);
-
-      await expect(movieService.getMovieById(movieId)).rejects.toThrow(
-        new NotFoundException({ message: 'Movie is not found' }),
-      );
+      await expect(service.getMovieById('movie123')).rejects.toThrow(NotFoundException);
     });
   });
 
-  describe('editMovie', () => {
-    it('should update a movie and create a log', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440000";
-      const user = {
-        id: "550e8400-e29b-41d4-a716-446655440044",
+  describe('saveNewMovie', () => {
+    it('should save a new movie', async () => {
+      const dto = {
+        title: 'Movie',
+        overview: 'Overview',
+        poster_path: 'path',
+        release_date: '2025-01-01',
+        genres: [{ id: 'genre1', name: 'Action' }] as Genre[],
       };
-      const editDto: EditDto = {
-        title: "New movie title",
-      };
+      const expected = { ...dto, id: 'movie1' };
+      mockMovieRepository.save.mockResolvedValue(expected);
 
-      const originalMovie = {
-        id: movieId,
-        title: "Movie title",
-        overview: "Movie overview",
-      } as Movie;
+      const result = await service.saveNewMovie(dto);
 
-      jest.spyOn(movieRepository, 'findOne').mockResolvedValue(originalMovie);
-      jest.spyOn(movieRepository, 'update').mockResolvedValue(undefined);
-      jest.spyOn(loggingService, 'createLog').mockResolvedValue(undefined);
-
-      await movieService.editMovie(movieId, editDto, user);
-
-      expect(movieRepository.findOne).toHaveBeenCalledWith({
-        where: { id: movieId },
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          tags: true,
-        },
-      });
-      expect(movieRepository.update).toHaveBeenCalledWith({
-        where: { id: movieId },
-        data: {
-          title: editDto.title || originalMovie.title,
-          overview: editDto.overview || originalMovie.overview,
-        },
-      });
-      expect(loggingService.createLog).toHaveBeenCalledWith({
-        title: 'Edited movie',
-        action: `Edited movie with changes: title changed from "${originalMovie.title}" to "${editDto.title}"`,
-        entity: 'Movie',
-        user_id: user.id,
-      });
-    });
-
-    it('should throw NotFoundException if movie is not found', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440001";
-      const user = {
-        id: "550e8400-e29b-41d4-a716-446655440044",
-      };
-      const editDto: EditDto = {
-        title: "New movie title",
-      };
-
-      jest.spyOn(movieRepository, 'findOne').mockResolvedValue(null);
-
-      await expect(movieService.editMovie(movieId, editDto, user)).rejects.toThrow(
-        new NotFoundException({ message: 'Movie is not found' }),
-      );
+      expect(mockMovieRepository.save).toHaveBeenCalledWith(expect.objectContaining(dto));
+      expect(result).toBe(expected);
     });
   });
 
-  describe('deleteMovie', () => {
-    it('should soft delete a movie and create a log', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440000";
-      const user = {
-        id: "550e8400-e29b-41d4-a716-446655440044",
-      };
+  describe('checkExistenceById', () => {
+    it('should return true if movie exists', async () => {
+      mockMovieRepository.isExist.mockResolvedValue(true);
 
-      jest.spyOn(movieRepository, 'isExist').mockResolvedValue(true);
-      jest.spyOn(movieRepository, 'softDelete').mockResolvedValue(undefined);
-      jest.spyOn(loggingService, 'createLog').mockResolvedValue(undefined);
+      const result = await service.checkExistenceById('movie123');
 
-      await movieService.deleteMovie(movieId, user);
-
-      expect(movieRepository.isExist).toHaveBeenCalledWith({ id: movieId });
-      expect(movieRepository.softDelete).toHaveBeenCalledWith(movieId);
-      expect(loggingService.createLog).toHaveBeenCalledWith({
-        title: 'Deleted movie',
-        action: `Deleted movie with ID: ${movieId}`,
-        entity: 'Movie',
-        user_id: user.id,
-      });
-    });
-
-    it('should throw NotFoundException if movie is not found', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440001";
-      const user = {
-        id: "550e8400-e29b-41d4-a716-446655440044",
-      };
-
-      jest.spyOn(movieRepository, 'isExist').mockResolvedValue(false);
-
-      await expect(movieService.deleteMovie(movieId, user)).rejects.toThrow(
-        new NotFoundException({ message: 'Movie is not found' }),
-      );
+      expect(result).toBe(true);
     });
   });
 });

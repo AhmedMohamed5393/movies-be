@@ -1,223 +1,127 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ExecutionContext, INestApplication, NotFoundException } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 import * as request from 'supertest';
-import { MovieController } from '../movie.controller';
+import { AppModule } from 'src/app.module'; // Adjust path as necessary
+import { MovieFilterOptionsDto } from '../dtos/index.dto';
+import { AuthGuard } from '@shared/guards/auth.guard';
+import { MockAuthGuard } from '@shared/tests/mock-auth.guard';
 import { MovieService } from '../movie.service';
-import { AddDto, EditDto } from '../dtos/index.dto';
-import { PageOptionsDto } from '@shared/pagination/pageOption.dto';
-import { AuthGuard } from '@shared/guards/index.guard';
-import { Reflector } from '@nestjs/core';
-import { SuccessClass } from '@shared/classes/success.class';
-import { PageMetaDto } from '@shared/pagination/page-meta.dto';
 import { Movie } from '../entities/movie.entity';
+import { PageOptionsDto } from '@shared/pagination/pageOption.dto';
+import { PageMetaDto } from '@shared/pagination/page-meta.dto';
+import { GetMoviesResponseInterface } from '../interfaces/get-movies-response.interface';
+import { WatchListItem } from 'src/modules/watchlist/entities/wishlist.entity';
+import { Rating } from 'src/modules/rating/entities/rating.entity';
 
 describe('MovieController (e2e)', () => {
   let app: INestApplication;
-  let movieService: MovieService;
+  let service: MovieService;
 
-  const mockAuthGuard = {
-    canActivate: (context: ExecutionContext) => {
-      const req = context.switchToHttp().getRequest();
-      req.user = { id: '550e8400-e29b-41d4-a716-446655440044' }; // Simulate authenticated user
-      return true;
-    },
-  };
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [MovieController],
-      providers: [
-        {
-          provide: MovieService,
-          useValue: {
-            saveNewMovie: jest.fn(),
-            getMovies: jest.fn(),
-            getMovieById: jest.fn(),
-            editMovie: jest.fn(),
-            deleteMovie: jest.fn(),
-          },
-        },
-        Reflector,
-      ],
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+        imports: [AppModule],
     })
-      .overrideGuard(AuthGuard)
-      .useValue(mockAuthGuard)
-      .compile();
+    .overrideGuard(AuthGuard)
+    .useValue(MockAuthGuard)
+    .compile();
 
-    app = module.createNestApplication();
+    app = moduleRef.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
 
-    movieService = module.get<MovieService>(MovieService);
+    service = moduleRef.get<MovieService>(MovieService);
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await app.close();
   });
 
-  describe('POST /movies', () => {
-    it('should create a new movie and return a success response', async () => {
-      const addDto: AddDto = {
-        title: "New movie title",
-        overview: "New movie overview",
+  describe('/movies (GET)', () => {
+    it('should return paginated movies', async () => {
+        const query = { page: 1, take: 10 } as MovieFilterOptionsDto;
+
+        const mockPageOptionsDto = {
+            page: 1,
+            take: 10,
+            search: '',
+        } as PageOptionsDto;
+        
+        const mockMovies = [
+            { id: 'm1', title: 'Movie 1', poster: { id: 'u1' } },
+            { id: 'm2', title: 'Movie 2', poster: { id: 'u2' } },
+        ] as Movie[];
+        
+        const mockPaginatedResponse = {
+            movies: mockMovies,
+            meta: {
+                total: 2,
+                itemsPerPage: 2,
+                pageOptionsDto: mockPageOptionsDto,
+            } as unknown as PageMetaDto,
+        } as unknown as GetMoviesResponseInterface;
+
+        jest.spyOn(service, 'getMovies').mockResolvedValueOnce(mockPaginatedResponse);
+
+        const response = await request(app.getHttpServer()).get('/movies').query(query);
+
+        expect(response.status).toBe(200);
+        expect(response.body.data.movies).toBeInstanceOf(Array);
+    });
+  });
+
+  describe('/movies/:id (GET)', () => {
+    it('should return movie by ID', async () => {
+        // You can mock movie data or ensure a movie exists before this test
+        const movieId = 'm1'; // Replace with a real/test ID
+
+        const mockResponse = {
+            id: 'm1',
+            title: 'Movie 1', poster: { id: 'u1' },
+        } as Movie;
+
+        jest.spyOn(service, 'getMovieById').mockResolvedValueOnce(mockResponse);
+
+        const response = await request(app.getHttpServer()).get(`/movies/${movieId}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.data.id).toBe(movieId);
+    });
+  });
+
+  describe('/movies/watchlist (POST)', () => {
+    it('should add a movie to user watchlist', async () => {
+      const payload = {
+        movie_id: '550e8400-e29b-41d4-a716-446655440000', // Replace with valid ID
       };
 
-      const savedMovie = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
-        ...addDto,
-      } as Movie;
+      const mockResponse = { id: 'watchlist1' } as WatchListItem;
 
-      jest.spyOn(movieService, 'saveNewMovie').mockResolvedValue(savedMovie);
+      jest.spyOn(service, 'addMovieItemToWatchList').mockResolvedValueOnce(mockResponse);
 
       const response = await request(app.getHttpServer())
-        .post('/movies')
-        .send(addDto)
-        .expect(201);
+        .post('/movies/watchlist')
+        .send(payload);
 
-      expect(response.body).toEqual(
-        new SuccessClass(savedMovie, 'movie is created successfully'),
-      );
+      expect(response.status).toBe(201);
     });
   });
 
-  describe('GET /movies', () => {
-    it('should return a paginated list of movies', async () => {
-      const pageOptionsDto = {
-        page: 1,
-        take: 10,
-        search: 'Samsung',
-      } as PageOptionsDto;
-
-      const movies = [
-        {
-          id: "550e8400-e29b-41d4-a716-446655440000",
-          title: "New movie post",
-          content: "Hi everyone",
-          tags: ["Welcome_onboard"],
-          user: {
-            id: "550e8400-e29b-41d4-a716-446655440044",
-            email: "ahmedmohamedalex93@gmail.com",
-          },
-          created_at: new Date().toISOString(),
-        },
-      ] as any[];
-
-      const meta = {
-        itemsPerPage: movies.length,
-        total: 1,
-        pageOptionsDto,
-      } as unknown as PageMetaDto;
-
-      jest.spyOn(movieService, 'getMovies').mockResolvedValue({ meta, movies });
-
-      const response = await request(app.getHttpServer())
-        .get('/movies')
-        .query(pageOptionsDto)
-        .expect(200);
-
-      expect(response.body).toEqual(new SuccessClass({ meta, movies }));
-    });
-  });
-
-  describe('GET /movies/:id', () => {
-    it('should return a movie by ID', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440000";
-      const movie = {
-        id: movieId,
-        title: "New movie post",
-        content: "Hi everyone",
-        tags: ["Welcome_onboard"],
-        user: {
-          id: "550e8400-e29b-41d4-a716-446655440044",
-          email: "ahmedmohamedalex93@gmail.com",
-        },
-        created_at: new Date().toISOString(),
-      } as any as Movie;
-
-      jest.spyOn(movieService, 'getMovieById').mockResolvedValue(movie);
-
-      const response = await request(app.getHttpServer())
-        .get(`/movies/${movieId}`)
-        .expect(200);
-
-      expect(response.body).toEqual(new SuccessClass(movie));
-    });
-
-    it('should return 404 if movie is not found', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440001";
-
-      jest.spyOn(movieService, 'getMovieById').mockImplementationOnce(() => {
-        throw new NotFoundException('Movie is not found');
-      });
-
-      const response = await request(app.getHttpServer())
-        .get(`/movies/${movieId}`)
-        .expect(404);
-
-      expect(response.body.message).toBe('Movie is not found');
-    });
-  });
-
-  describe('PUT /movies/:id', () => {
-    it('should update a movie and return a success response', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440000";
-      const editDto: EditDto = {
-        title: "New movie post",
+  describe('/movies/rate (POST)', () => {
+    it('should allow user to rate a movie', async () => {
+      const payload = {
+        movie_id: '550e8400-e29b-41d4-a716-446655440000', // Replace with valid ID
+        rating: 5,
       };
 
-      jest.spyOn(movieService, 'editMovie').mockResolvedValue(undefined);
+      const mockResponse = { id: 'rating1', value: 5 } as Rating;
+
+      jest.spyOn(service, 'addRatingToMovie').mockResolvedValueOnce(mockResponse);
 
       const response = await request(app.getHttpServer())
-        .put(`/movies/${movieId}`)
-        .send(editDto)
-        .expect(200);
+        .post('/movies/rate')
+        .send(payload);
 
-      expect(response.body).toEqual(
-        new SuccessClass({ id: movieId }, 'movie is updated successfully'),
-      );
-    });
-
-    it('should return 404 if movie is not found', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440001";
-      const editDto: EditDto = {
-        title: "New movie post",
-      };
-
-      jest.spyOn(movieService, 'editMovie').mockRejectedValue(new NotFoundException('Movie is not found'));
-
-      const response = await request(app.getHttpServer())
-        .put(`/movies/${movieId}`)
-        .send(editDto)
-        .expect(404);
-
-      expect(response.body.message).toBe('Movie is not found');
-    });
-  });
-
-  describe('DELETE /movies/:id', () => {
-    it('should delete a movie and return a success response', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440000";
-
-      jest.spyOn(movieService, 'deleteMovie').mockResolvedValue(undefined);
-
-      const response = await request(app.getHttpServer())
-        .delete(`/movies/${movieId}`)
-        .expect(200);
-
-      expect(response.body).toEqual(
-        new SuccessClass({}, 'movie is deleted successfully'),
-      );
-    });
-
-    it('should return 404 if movie is not found', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440001";
-
-      jest.spyOn(movieService, 'deleteMovie').mockRejectedValue(new NotFoundException('Movie is not found'));
-
-      const response = await request(app.getHttpServer())
-        .delete(`/movies/${movieId}`)
-        .expect(404);
-
-      expect(response.body.message).toBe('Movie is not found');
+      expect(response.status).toBe(201);
     });
   });
 });

@@ -1,180 +1,82 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MovieController } from '../movie.controller';
 import { MovieService } from '../movie.service';
+import { AddRatingToMovieDto, AddToWatchListDto, MovieFilterOptionsDto } from '../dtos/index.dto';
 import { SuccessClass } from '@shared/classes/success.class';
-import { AddDto, EditDto } from '../dtos/index.dto';
-import { PageOptionsDto } from '@shared/pagination/pageOption.dto';
+import { JWTAuthService } from '@shared/services/index.service';
 import { AuthGuard } from '@shared/guards/index.guard';
-import { ExecutionContext } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { PageMetaDto } from '@shared/pagination/page-meta.dto';
-import { Movie } from '../entities/movie.entity';
+
+const mockUserId = 'user123';
 
 describe('MovieController', () => {
-  let movieController: MovieController;
-  let movieService: MovieService;
-
-  const mockAuthGuard = {
-    canActivate: (context: ExecutionContext) => {
-      const req = context.switchToHttp().getRequest();
-      req.user = { id: '550e8400-e29b-41d4-a716-446655440044' }; // Simulate authenticated user
-      return true;
-    },
-  };
+  let controller: MovieController;
+  let mockMovieService: Partial<Record<keyof MovieService, jest.Mock>>;
+  let mockJWTAuthService: Partial<JWTAuthService>; // Mocking the JWTAuthService
 
   beforeEach(async () => {
+    mockMovieService = {
+      getMovies: jest.fn(),
+      getMovieById: jest.fn(),
+      addMovieItemToWatchList: jest.fn(),
+      addRatingToMovie: jest.fn(),
+    };
+
+    mockJWTAuthService = {
+      // Mock the methods of JWTAuthService you need for the test, e.g.
+      verifyToken: jest.fn().mockResolvedValue(true), // Example method
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MovieController],
       providers: [
+        { provide: MovieService, useValue: mockMovieService },
+        { provide: JWTAuthService, useValue: mockJWTAuthService }, // Provide the mock JWTAuthService
         {
-          provide: MovieService,
-          useValue: {
-            saveNewMovie: jest.fn(),
-            getMovies: jest.fn(),
-            getMovieById: jest.fn(),
-            editMovie: jest.fn(),
-            deleteMovie: jest.fn(),
-          },
+          provide: AuthGuard,
+          useValue: { canActivate: jest.fn().mockReturnValue(true) }, // Mocking AuthGuard if needed
         },
-        Reflector,
       ],
-    })
-      .overrideGuard(AuthGuard)
-      .useValue(mockAuthGuard)
-      .compile();
+    }).compile();
 
-    movieController = module.get<MovieController>(MovieController);
-    movieService = module.get<MovieService>(MovieService);
+    controller = module.get<MovieController>(MovieController);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  it('should get all movies', async () => {
+    const dto = { page: 1, take: 10 } as MovieFilterOptionsDto;
+    const mockResult = { movies: ['movie1'], meta: {} };
+    mockMovieService.getMovies.mockResolvedValue(mockResult);
+
+    const result = await controller.getMovies(dto);
+    expect(result).toMatchObject(new SuccessClass(mockResult));
   });
 
-  it('should be defined', () => {
-    expect(movieController).toBeDefined();
+  it('should get movie by id', async () => {
+    const mockMovie = { id: '123', title: 'Test Movie' };
+    mockMovieService.getMovieById.mockResolvedValue(mockMovie);
+
+    const result = await controller.getMovieById('123');
+    expect(result).toMatchObject(new SuccessClass(mockMovie));
   });
 
-  describe('addMovie', () => {
-    it('should create a new movie and return a success response', async () => {
-      const addDto: AddDto = {
-        title: "New movie title",
-        overview: "New Movie overview",
-      };
+  it('should add movie to watchlist', async () => {
+    const dto: AddToWatchListDto = { movie_id: '123' };
+    const mockWatchlist = { id: 'watch1' };
+    mockMovieService.addMovieItemToWatchList.mockResolvedValue(mockWatchlist);
 
-      const user = {
-        id: "550e8400-e29b-41d4-a716-446655440044",
-      };
-      const savedMovie = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
-        ...addDto,
-        created_at: new Date(),
-      } as Movie;
-
-      jest.spyOn(movieService, 'saveNewMovie').mockResolvedValue(savedMovie);
-
-      const result = await movieController.addMovie(addDto, user);
-
-      expect(movieService.saveNewMovie).toHaveBeenCalledWith(addDto, user);
-      expect(result).toEqual(
-        new SuccessClass(savedMovie, 'movie is created successfully'),
-      );
-    });
+    const result = await controller.addMovieToWatchList(dto, mockUserId);
+    expect(result).toMatchObject(
+      new SuccessClass(mockWatchlist, "movie is added to user's watchlist successfully"),
+    );
   });
 
-  describe('getMovies', () => {
-    it('should return a paginated list of movies', async () => {
-      const pageOptionsDto = {
-        page: 1,
-        take: 10,
-        search: 'Samsung',
-      } as PageOptionsDto;
+  it('should rate a movie', async () => {
+    const dto: AddRatingToMovieDto = { movie_id: '123', rating: 5 };
+    const mockRating = { id: 'rate1' };
+    mockMovieService.addRatingToMovie.mockResolvedValue(mockRating);
 
-      const movies = [
-        {
-          id: "550e8400-e29b-41d4-a716-446655440000",
-          title: "New movie title",
-          overview: "New moview overview",
-          poster: {
-            id: "550e8400-e29b-41d4-a716-446655440044",
-            email: "ahmedmohamedalex93@gmail.com",
-          },
-          created_at: new Date(),
-        },
-      ] as Movie[];
-
-      const meta = {
-        itemsPerPage: movies.length,
-        total: 1,
-        pageOptionsDto,
-      } as unknown as PageMetaDto;
-
-      jest.spyOn(movieService, 'getMovies').mockResolvedValue({ meta, movies });
-
-      const result = await movieController.getMovies(pageOptionsDto);
-
-      expect(movieService.getMovies).toHaveBeenCalledWith(pageOptionsDto);
-      expect(result).toEqual(new SuccessClass({ meta, movies }));
-    });
-  });
-
-  describe('getMovieById', () => {
-    it('should return a movie by ID', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440000";
-      const movie = {
-        id: movieId,
-        title: "New movie title",
-        overview: "New movie overview",
-        poster: {
-          id: "550e8400-e29b-41d4-a716-446655440044",
-          email: "ahmedmohamedalex93@gmail.com",
-        },
-        created_at: new Date(),
-      } as Movie;
-
-      jest.spyOn(movieService, 'getMovieById').mockResolvedValue(movie);
-
-      const result = await movieController.getMovieById(movieId);
-
-      expect(movieService.getMovieById).toHaveBeenCalledWith(movieId);
-      expect(result).toEqual(new SuccessClass(movie));
-    });
-  });
-
-  describe('editMovie', () => {
-    it('should update a movie and return a success response', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440000";
-      const user = {
-        id: "550e8400-e29b-41d4-a716-446655440044",
-      };
-      const editDto: EditDto = {
-        title: "New movie title",
-      };
-
-      jest.spyOn(movieService, 'editMovie').mockResolvedValue(undefined);
-
-      const result = await movieController.editMovie(movieId, editDto, user);
-
-      expect(movieService.editMovie).toHaveBeenCalledWith(movieId, editDto, user);
-      expect(result).toEqual(
-        new SuccessClass({ id: movieId }, 'movie is updated successfully'),
-      );
-    });
-  });
-
-  describe('deleteMovie', () => {
-    it('should delete a movie and return a success response', async () => {
-      const movieId = "550e8400-e29b-41d4-a716-446655440000";
-      const user = {
-        id: "550e8400-e29b-41d4-a716-446655440044",
-      };
-
-      jest.spyOn(movieService, 'deleteMovie').mockResolvedValue(undefined);
-
-      const result = await movieController.deleteMovie(movieId, user);
-
-      expect(movieService.deleteMovie).toHaveBeenCalledWith(movieId, user);
-      expect(result).toEqual(new SuccessClass({}, 'movie is deleted successfully'));
-    });
+    const result = await controller.addRatingToMovie(dto, mockUserId);
+    expect(result).toMatchObject(
+      new SuccessClass(mockRating, 'movie is rated by user successfully'),
+    );
   });
 });
