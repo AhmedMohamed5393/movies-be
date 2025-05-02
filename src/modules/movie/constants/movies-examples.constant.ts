@@ -19,6 +19,7 @@ export const findMoviesListResponse = {
             "id": "550e8400-e29b-41d4-a716-446655440044",
             "email": "ahmedmohamedalex93@gmail.com",
           },
+          "avg_rating": 4.7,
           "created_at": "2025-01-13T22:53:41.354Z"
         }
       ]
@@ -38,6 +39,7 @@ export const findMovieDetailsResponse = {
         "id": "550e8400-e29b-41d4-a716-446655440044",
         "email": "ahmedmohamedalex93@gmail.com",
       },
+      "avg_rating": 4.7,
       "created_at": "2025-01-13T22:53:41.354Z",
     },
     "message": "OPERATION_SUCCESSED",

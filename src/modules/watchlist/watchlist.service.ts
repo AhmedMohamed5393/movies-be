@@ -51,7 +51,7 @@ export class WatchListService {
         movie: { id: true, title: true },
         created_at: true,
       },
-      relations: { movie: true },
+      relations: { movie: { ratings: true } },
       take: take,
       skip: skip,
       where: where,

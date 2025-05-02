@@ -79,7 +79,7 @@ export class MovieService {
         genres: { id: true, name: true },
         created_at: true,
       },
-      relations: { poster: true, genres: true },
+      relations: { poster: true, genres: true, ratings: true },
       take: take,
       skip: skip,
       where: where,

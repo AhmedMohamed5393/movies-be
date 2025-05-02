@@ -26,6 +26,7 @@ export const findWatchListItemsResponse = {
           "movie": {
             "id": "550e8400-e29b-41d4-a716-446655440022",
             "title": "New movie title",
+            "avg_rating": 4.7,
           },
           "created_at": "2025-01-13T22:53:41.354Z",
         }

@@ -1,5 +1,5 @@
 import { Base } from '@shared/entities/base.entity';
-import { Exclude } from 'class-transformer';
+import { Exclude, Expose } from 'class-transformer';
 import { Genre } from 'src/modules/genre/entities/genre.entity';
 import { Rating } from 'src/modules/rating/entities/rating.entity';
 import { User } from 'src/modules/user/entities/user.entity';
@@ -23,6 +23,7 @@ export class Movie extends Base {
   @ManyToOne(() => User, (user) => user.movies)
   poster: User;
 
+  @Exclude()
   @OneToMany(() => Rating, (rating) => rating.movie, { cascade: true })
   ratings: Rating[];
 
@@ -33,4 +34,13 @@ export class Movie extends Base {
   @Exclude()
   @OneToMany(() => WatchListItem, (watchListItem) => watchListItem.movie)
   watchListItems: WatchListItem[];
+
+  @Expose()
+  get avg_rating() {
+    if (!this.ratings?.length) return 0;
+
+    // calculate average rates applied on certain movie approximated to tenth digit
+    const total = this.ratings.reduce((sum, rating) => sum + rating.value, 0);
+    return parseFloat((total / this.ratings.length).toFixed(1));
+  }
 }
