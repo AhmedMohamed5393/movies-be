@@ -21,7 +21,7 @@ You should login first and then go to the project,
 Click on Variables tab, add the required ones and then re-deploy it.
 
 # To open the app in production mode use
-
+https://movies-be-production.up.railway.app/
 
 # To open swagger doumentation use
-{{ base_url }}/api
+https://movies-be-production.up.railway.app/api or {{ base_url }}/api

@@ -9,10 +9,11 @@ services:
       - "${PORT}:${DOCKER_PORT}"
     environment:
       - DATABASE_URL=${DATABASE_URL}
-    db:
-      condition: service_healthy
-    redis:
-      condition: service_healthy
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks: 
       - movies-be
 
@@ -40,6 +41,11 @@ services:
       - "${REDIS_PORT}:${REDIS_DOCKER_PORT}"
     networks: 
       - movies-be
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
