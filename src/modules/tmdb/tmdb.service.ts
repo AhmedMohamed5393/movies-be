@@ -19,7 +19,7 @@ export class TmdbService {
     const url = `${this.TMDB_BASE_URL}/genre/movie/list?api_key=${this.TMDB_API_KEY}`;
     const { data } = await axios.get(url);
     for (const genre of data.genres) {
-        await this.genreService.saveNewGenre(genre.name);
+      await this.genreService.saveNewGenre(genre.name);
     }
 
     this.logger.log('Genres synced');
@@ -29,19 +29,19 @@ export class TmdbService {
     const url = `${this.TMDB_BASE_URL}/movie/popular?api_key=${this.TMDB_API_KEY}`;
     const { data } = await axios.get(url);
     for (const movie of data.results) {
-        const existing = await this.movieService.checkExistenceById(movie.id);
-        const genres = await this.genreService.findByIds(movie.genre_ids);
-        
-        const payload: CreateMovieInterface = {
-            title: movie.title,
-            overview: movie.overview,
-            poster_path: movie.poster_path,
-            release_date: movie.release_date,
-            genres: genres,
-        };
-        if (!existing) {
-            await this.movieService.saveNewMovie(payload);
-        }
+      const existing = await this.movieService.checkExistenceById(movie.id);
+      const genres = await this.genreService.findByIds(movie.genre_ids);
+      
+      const payload: CreateMovieInterface = {
+        title: movie.title,
+        overview: movie.overview,
+        poster_path: movie.poster_path,
+        release_date: movie.release_date,
+        genres: genres,
+      };
+      if (!existing) {
+        await this.movieService.saveNewMovie(payload);
+      }
     }
 
     this.logger.log('Popular movies synced');
