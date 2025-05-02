@@ -119,7 +119,11 @@ export class MovieService {
         },
         created_at: true,
       },
-      relations: { poster: true },
+      relations: {
+        poster: true,
+        genres: true,
+        ratings: { user: true },
+      },
       where: where,
     });
     if (!movie) {
