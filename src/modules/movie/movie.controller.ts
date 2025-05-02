@@ -79,7 +79,7 @@ export class MovieController {
     example: addToWatchListResponse,
   })
   @ApiBody({ type: AddToWatchListDto })
-  @Post("/:id/watchlist")
+  @Post("/watchlist")
   async addMovieToWatchList(
     @Body() addToWatchListDto: AddToWatchListDto,
     @AuthenticatedUser("id") user_id: string,
@@ -101,7 +101,7 @@ export class MovieController {
     example: rateMovieResponse,
   })
   @ApiBody({ type: AddRatingToMovieDto })
-  @Post("/:id/rating")
+  @Post("/rate")
   async addRatingToMovie(
     @Body() addRatingToMovieDto: AddRatingToMovieDto,
     @AuthenticatedUser("id") user_id: string,

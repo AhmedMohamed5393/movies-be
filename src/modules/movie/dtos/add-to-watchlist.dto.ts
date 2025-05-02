@@ -9,12 +9,4 @@ export class AddToWatchListDto {
   @IsNotEmpty()
   @IsUUID()
   movie_id: string;
-
-  @ApiProperty({
-    example: 'ID of the user',
-    description: 'The id of the user',
-  })
-  @IsNotEmpty()
-  @IsUUID()
-  user_id: string;
 }
