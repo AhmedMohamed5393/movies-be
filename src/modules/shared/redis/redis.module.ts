@@ -9,7 +9,7 @@ import { RedisService } from './redis.service';
     CacheModule.register({
       isGlobal: true,
       store: redisStore,
-      host: 'localhost', // or your Docker Redis hostname
+      host: process.env.REDIS_HOST, // or your Docker Redis hostname
       port: +process.env.REDIS_PORT,
       ttl: 60, // default TTL in seconds
     }),
