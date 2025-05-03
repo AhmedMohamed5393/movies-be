@@ -1,4 +1,4 @@
-name: Deploy to Railway
+name: Movies BE App Continuous Integration with Testing
 
 on:
   push:
@@ -6,13 +6,9 @@ on:
       - master
 
 jobs:
-  deploy:
-    name: Deploy App
+  integration:
+    name: Integrate App with running tests
     runs-on: ubuntu-latest
-    env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
 
     steps:
       - name: Checkout Repo
@@ -22,15 +18,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 22
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy to Railway
-        run: railway up --service ${{ secrets.RAILWAY_SERVICE_NAME }}
-      
-      - name: Pull Railway environment variables
-        run: railway variables > .env
 
       - name: 🐳 Start Docker containers with env vars
         run: docker-compose --env-file .env up -d --build
