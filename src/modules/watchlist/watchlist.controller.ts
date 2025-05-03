@@ -31,6 +31,7 @@ import { AuthenticatedUser } from '@shared/decorators/authenticated-user.decorat
 @ApiTags('watchlist') // Group endpoints under 'watchlist' in Swagger UI
 @ApiBearerAuth('access-token') // Add Bearer Auth to all endpoints
 @UseInterceptors(ClassSerializerInterceptor)
+@UseGuards(AuthGuard)
 @Controller('watchlist')
 export class WatchListController {
   constructor(private readonly watchlistService: WatchListService) {}
@@ -51,7 +52,6 @@ export class WatchListController {
     return new SuccessClass(data);
   }
 
-  @UseGuards(AuthGuard)
   @ApiOperation({ summary: "Delete a watchlist item by ID" })
   @ApiUnauthorizedResponse({ description: "Unauthorized" })
   @ApiForbiddenResponse({ description: "Forbidden resource" })
