@@ -4,7 +4,7 @@ import { Genre } from 'src/modules/genre/entities/genre.entity';
 import { Rating } from 'src/modules/rating/entities/rating.entity';
 import { User } from 'src/modules/user/entities/user.entity';
 import { WatchListItem } from 'src/modules/watchlist/entities/wishlist.entity';
-import { Entity, Column, ManyToOne, JoinTable, ManyToMany, OneToMany } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinTable, ManyToMany, OneToMany, Index } from 'typeorm';
 
 @Entity({ name: 'movies' })
 export class Movie extends Base {
@@ -19,6 +19,10 @@ export class Movie extends Base {
 
   @Column({ nullable: true })
   release_date: string;
+
+  @Index()
+  @Column({ type: 'varchar', nullable: true })
+  tmdb_id: string;
 
   @ManyToOne(() => User, (user) => user.movies)
   poster: User;

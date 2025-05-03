@@ -135,6 +135,7 @@ export class MovieService {
 
   async saveNewMovie(payload: CreateMovieInterface) {
     const newMovie = new Movie();
+    newMovie.tmdb_id = payload.tmdb_id;
     newMovie.title = payload.title;
     newMovie.overview = payload.overview;
     newMovie.poster_path = payload.poster_path;
@@ -144,7 +145,7 @@ export class MovieService {
     return await this.movieRepository.save(newMovie);
   }
 
-  async checkExistenceById(id: string) {
-    return await this.movieRepository.isExist({ id });
+  async checkExistenceById(tmdb_id: string) {
+    return await this.movieRepository.isExist({ tmdb_id });
   }
 }
