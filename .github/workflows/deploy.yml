@@ -25,12 +25,12 @@ jobs:
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
-      
-      - name: Pull Railway environment variables
-        run: railway variables > .env
 
       - name: Deploy to Railway
         run: railway up --service ${{ secrets.RAILWAY_SERVICE_NAME }}
+      
+      - name: Pull Railway environment variables
+        run: railway variables > .env
 
       - name: 🐳 Start Docker containers with env vars
         run: docker-compose --env-file .env up -d --build
