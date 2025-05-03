@@ -26,9 +26,6 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Authenticate with Railway CLI
-        run: echo $RAILWAY_TOKEN | railway login
-
       - name: Pull Railway environment variables
         run: railway variables > .env
 
