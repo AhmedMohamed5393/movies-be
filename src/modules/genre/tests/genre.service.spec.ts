@@ -34,7 +34,8 @@ describe('GenreService', () => {
 
       mockGenreRepository.save.mockResolvedValue(expectedGenre);
 
-      const result = await service.saveNewGenre(genreName);
+      const genre_tmdb_id = '1234';
+      const result = await service.saveNewGenre(genre_tmdb_id, genreName);
 
       expect(mockGenreRepository.save).toHaveBeenCalledWith(expect.objectContaining({ name: genreName }));
       expect(result).toEqual(expectedGenre);
@@ -43,7 +44,7 @@ describe('GenreService', () => {
 
   describe('findByIds', () => {
     it('should return genres with matching ids', async () => {
-      const ids = ['1', '2'];
+      const tmdb_ids = ['1', '2'];
       const expectedGenres = [
         { id: '1' },
         { id: '2' },
@@ -51,10 +52,10 @@ describe('GenreService', () => {
 
       mockGenreRepository.find.mockResolvedValue(expectedGenres);
 
-      const result = await service.findByIds(ids);
+      const result = await service.findByIds(tmdb_ids);
 
       expect(mockGenreRepository.find).toHaveBeenCalledWith({
-        where: { id: In(ids) },
+        where: { tmdb_id: In(tmdb_ids) },
         select: { id: true },
       });
       expect(result).toEqual(expectedGenres);

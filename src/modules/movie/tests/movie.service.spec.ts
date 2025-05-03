@@ -125,6 +125,7 @@ describe('MovieService', () => {
   describe('saveNewMovie', () => {
     it('should save a new movie', async () => {
       const dto = {
+        tmdb_id: '1234',
         title: 'Movie',
         overview: 'Overview',
         poster_path: 'path',

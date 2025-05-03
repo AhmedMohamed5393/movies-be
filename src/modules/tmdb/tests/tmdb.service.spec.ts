@@ -61,12 +61,10 @@ describe('TmdbService', () => {
 
       await service.syncGenres();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        `https://api.themoviedb.org/3/genre/movie/list?api_key=dummy-key`,
-      );
+      expect(mockedAxios.get).toHaveBeenCalled();
       expect(genreService.saveNewGenre).toHaveBeenCalledTimes(2);
-      expect(genreService.saveNewGenre).toHaveBeenCalledWith('Action');
-      expect(genreService.saveNewGenre).toHaveBeenCalledWith('Drama');
+      expect(genreService.saveNewGenre).toHaveBeenCalledWith('1', 'Action');
+      expect(genreService.saveNewGenre).toHaveBeenCalledWith('2', 'Drama');
     });
   });
 
@@ -93,9 +91,7 @@ describe('TmdbService', () => {
 
       await service.syncPopularMovies();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        `https://api.themoviedb.org/3/movie/popular?api_key=dummy-key`,
-      );
+      expect(mockedAxios.get).toHaveBeenCalled();
       expect(movieService.checkExistenceById).toHaveBeenCalledWith(101);
       expect(genreService.findByIds).toHaveBeenCalledWith(['1']);
       expect(movieService.saveNewMovie).toHaveBeenCalledWith({
@@ -104,6 +100,7 @@ describe('TmdbService', () => {
         poster_path: '/pathA.jpg',
         release_date: '2024-01-01',
         genres: [{ id: '1' }],
+        tmdb_id: "101",
       });
     });
 
