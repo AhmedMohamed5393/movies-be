@@ -27,7 +27,7 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Pull Railway environment variables
-        run: railway variables --project $RAILWAY_PROJECT_ID > .env
+        run: railway login --token ${{ secrets.RAILWAY_TOKEN }} && railway variables > .env
 
       - name: Deploy to Railway
         run: railway up --service ${{ secrets.RAILWAY_SERVICE_NAME }}
