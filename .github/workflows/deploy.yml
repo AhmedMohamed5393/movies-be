@@ -26,11 +26,10 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Authenticate with Railway CLI
-        run: echo $RAILWAY_TOKEN | railway login
-
-      - name: Pull Railway environment variables
-        run: railway variables > .env
+      - name: Export Railway Token and Configure
+        run: |
+          echo "RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }}" >> $GITHUB_ENV
+          railway variables --project ${{ secrets.RAILWAY_PROJECT_ID }} > .env
 
       - name: Deploy to Railway
         run: railway up --service ${{ secrets.RAILWAY_SERVICE_NAME }}
