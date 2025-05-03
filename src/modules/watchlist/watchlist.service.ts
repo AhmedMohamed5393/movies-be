@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { LoggingService } from '../logging/logging.service';
 import { WatchListRepository } from './repositories/watchlist.repository';
 import { WatchListItem } from './entities/wishlist.entity';
@@ -17,6 +17,16 @@ export class WatchListService {
   ) {}
 
   async saveNewWatchListItem(payload: AddToWatchListPayloadInterface) {
+    // check existence of watchlist item by user and movie ids
+    const isExist = await this.watchListRepository.isExist({
+      movie: { id: payload.movie_id },
+      user: { id: payload.user_id },
+    });
+    if (isExist) {
+      throw new ConflictException('This item already exists');
+    }
+    
+    // map and insert a new watchlist item
     const newItem = new WatchListItem();
     newItem.movie = { id: payload.movie_id } as Movie;
     newItem.user = { id: payload.user_id } as User;
