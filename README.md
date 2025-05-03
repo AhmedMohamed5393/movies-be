@@ -24,4 +24,4 @@ Click on Variables tab, add the required ones and then re-deploy it.
 https://movies-be-production.up.railway.app/
 
 # To open swagger doumentation use
-https://movies-be-production.up.railway.app/api or {{ base_url }}/api
+https://movies-be-production.up.railway.app/api or http://localhost:8080/api
