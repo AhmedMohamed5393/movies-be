@@ -9,6 +9,8 @@ services:
       - "${PORT}:${DOCKER_PORT}"
     environment:
       - DATABASE_URL=${DATABASE_URL}
+      - TMDB_API_KEY=${TMDB_API_KEY}
+      - TMDB_BASE_URL=${TMDB_BASE_URL}
     depends_on:
       db:
         condition: service_healthy

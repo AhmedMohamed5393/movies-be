@@ -42,7 +42,7 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   app.use('/public', express.static(join(__dirname, '..', 'public')));
 
-  const port = process.env.PORT;
+  const port = process.env.DOCKER_PORT || process.env.PORT;
   await app.listen(port, '0.0.0.0');
 
   Logger.log(`App is running on port ${port}`);
