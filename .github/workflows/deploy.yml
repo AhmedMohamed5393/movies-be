@@ -26,7 +26,30 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      # ✅ Direct deploy using env vars
+      - name: Pull Railway environment variables
+        run: railway variables --project $RAILWAY_PROJECT_ID > .env
+
       - name: Deploy to Railway
         run: railway up --service ${{ secrets.RAILWAY_SERVICE_NAME }}
 
+      - name: 🐳 Start Docker containers with env vars
+        run: docker-compose --env-file .env up -d --build
+
+      - name: ⏱ Wait for services to be healthy
+        run: |
+          echo "Waiting for db and redis to be healthy..."
+          for i in {1..30}; do
+            DB_STATUS=$(docker inspect --format='{{.State.Health.Status}}' $(docker-compose ps -q db))
+            REDIS_STATUS=$(docker inspect --format='{{.State.Health.Status}}' $(docker-compose ps -q redis))
+            if [ "$DB_STATUS" == "healthy" ] && [ "$REDIS_STATUS" == "healthy" ]; then
+              echo "✅ All services healthy!"
+              break
+            fi
+            echo "⏳ Still waiting... ($i/30)"
+            sleep 5
+          done
+
+      - name: 🧪 Run Unit and E2E Tests inside app container
+        run: |
+          APP_CONTAINER=$(docker-compose ps -q app)
+          docker exec "$APP_CONTAINER" npm run test
